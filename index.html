@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かんたんキャリアタイプ診断</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{
+  margin:0;
+  font-family:'Noto Sans JP',sans-serif;
+  background:#f8fafc;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.container{
+  width:95%;
+  max-width:420px;
+}
+.card{
+  background:#fff;
+  padding:24px;
+  border-radius:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.05);
+}
+h1{
+  text-align:center;
+  color:#2563eb;
+  font-size:22px;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+}
+.primary{
+  background:#2563eb;
+  color:#fff;
+}
+.primary:hover{
+  background:#1e4fd8;
+}
+.scale{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:12px;
+}
+.scale button{
+  background:#e2e8f0;
+}
+.scale button.selected{
+  background:#3b82f6;
+  color:#fff;
+}
+.progress{
+  height:8px;
+  background:#e2e8f0;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+.progress-bar{
+  height:8px;
+  background:#2563eb;
+  border-radius:10px;
+  width:0%;
+}
+.result-title{
+  font-size:20px;
+  font-weight:700;
+  color:#2563eb;
+  text-align:center;
+  margin-bottom:12px;
+}
+.small{
+  font-size:12px;
+  color:#64748b;
+  margin-top:16px;
+  text-align:center;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card" id="app"></div>
+</div>
+
+<script>
+const questions = [
+"物事は計画を立ててから進めたい",
+"思いついたらすぐ行動するほうだ",
+"チームで協力するほうが力を発揮できる",
+"新しいことに挑戦するのが好きだ",
+"データや数字をもとに判断したい",
+"直感を信じて決めることが多い",
+"失敗を避けるため慎重に考える",
+"自分のやり方で進めたい",
+"人の相談に乗ることが多い",
+"変化の多い環境のほうが楽しい"
+];
+
+const scaleLabels = [
+{label:"ちがう", value:1},
+{label:"ややちがう", value:2},
+{label:"どちらでもない", value:3},
+{label:"ややそう", value:4},
+{label:"そう", value:5}
+];
+
+let scores = {logical:0,intuitive:0,cautious:0,challenge:0,cooperative:0,independent:0};
+let current=0;
+let selected=null;
+
+function renderStart(){
+document.getElementById("app").innerHTML=`
+<h1>かんたんキャリアタイプ診断</h1>
+<p>10問に答えると、あなたのタイプがわかります。<br>（所要時間：約1分）</p>
+<button class="primary" onclick="start()">診断をはじめる</button>
+`;
+}
+
+function start(){
+current=0;
+scores={logical:0,intuitive:0,cautious:0,challenge:0,cooperative:0,independent:0};
+renderQuestion();
+}
+
+function renderQuestion(){
+selected=null;
+let percent=(current/questions.length)*100;
+document.getElementById("app").innerHTML=`
+<div class="progress"><div class="progress-bar" style="width:${percent}%"></div></div>
+<h1>Q${current+1}</h1>
+<p>${questions[current]}</p>
+<div class="scale">
+${scaleLabels.map(s=>`<button onclick="select(${s.value},this)">${s.label}</button>`).join("")}
+</div>
+<button class="primary" onclick="next()" id="nextBtn" disabled>次へ</button>
+`;
+}
+
+function select(value,el){
+selected=value;
+document.querySelectorAll(".scale button").forEach(b=>b.classList.remove("selected"));
+el.classList.add("selected");
+document.getElementById("nextBtn").disabled=false;
+}
+
+function next(){
+applyScore(selected);
+current++;
+if(current<questions.length){
+renderQuestion();
+}else{
+showResult();
+}
+}
+
+function applyScore(val){
+switch(current){
+case 0: case 4: scores.logical+=val; break;
+case 5: scores.intuitive+=val; break;
+case 1: case 3: case 9: scores.challenge+=val; break;
+case 6: scores.cautious+=val; break;
+case 2: case 8: scores.cooperative+=val; break;
+case 7: scores.independent+=val; break;
+}
+}
+
+function showResult(){
+let think = scores.logical>=scores.intuitive ? "論理" : "直感";
+let act = scores.challenge>=scores.cautious ? "チャレンジ" : "慎重";
+let rel = scores.cooperative>=scores.independent ? "協調" : "自立";
+
+let typeMap = {
+"論理慎重協調": ["堅実サポーター型","運営・管理系／教育・支援系","#16a34a","🌿"],
+"論理慎重自立": ["分析プランナー型","研究・分析系／技術系","#2563eb","📊"],
+"論理チャレンジ協調": ["改善エンジニア型","技術系／現場・実務系","#06b6d4","🔧"],
+"論理チャレンジ自立": ["開拓スペシャリスト型","技術系／研究・分析系","#4f46e5","🚀"],
+"直感慎重協調": ["共感ファシリテーター型","教育・支援系／営業・対人サービス系","#ec4899","🤝"],
+"直感慎重自立": ["調整コーディネーター型","企画・マーケティング系／運営・管理系","#9333ea","🧭"],
+"直感チャレンジ協調": ["アイデアメーカー型","企画・マーケティング系／デザイン系","#f97316","💡"],
+"直感チャレンジ自立": ["フロンティア型","クリエイティブ系／起業的活動","#ef4444","🔥"]
+};
+
+let key=think+act+rel;
+let result=typeMap[key];
+
+document.getElementById("app").innerHTML=`
+<div style="text-align:center; padding:30px 20px; border-radius:20px; background:linear-gradient(135deg, ${result[2]}22, #ffffff);">
+<div style="font-size:50px;">${result[3]}</div>
+<div style="font-size:22px; font-weight:700; color:${result[2]}; margin:10px 0;">
+${result[0]}
+</div>
+<p style="margin:10px 0 20px 0;">
+あなたらしい強みが活きるタイプです。<br>
+環境次第でさらに伸びます。
+</p>
+<div style="font-weight:600; margin-bottom:8px;">向いている職種カテゴリ</div>
+<div style="color:${result[2]}; font-weight:700;">
+${result[1]}
+</div>
+<div style="margin-top:25px;">
+<button class="primary" onclick="renderStart()">もう一度やる</button>
+</div>
+<div style="font-size:12px; color:#64748b; margin-top:15px;">
+かんたんキャリアタイプ診断
+</div>
+</div>
+`;
+}
+
+
+renderStart();
+</script>
+</body>
+</html>
